@@ -8,7 +8,8 @@
  *   P1: Role (behavioral_directive) — always first, never truncated
  *   P2: Decisions (rules) — latest 5, overflow reduces to 3
  *   P3: Skills (active_skills) — unique names, latest 10
- *   P4: Intent (session_mode) — latest
+ *   P4: Intent (session_mode) — REMOVED: volatile tag caused cache misses on every mode switch.
+ *       Agent infers mode from conversation context — redundant tag not needed.
  *
  * Hard cap: 500 tokens (~2000 chars at 4 chars/token).
  */
@@ -36,7 +37,6 @@ export function buildAutoInjection(events) {
   const decisionsAll = [];
   const skillsSeen = new Set();
   const skillsOrdered = [];
-  let intent;
   for (const e of events) {
     switch (e.category) {
       case "role":
@@ -52,7 +52,8 @@ export function buildAutoInjection(events) {
         }
         break;
       case "intent":
-        intent = e;
+        // P4 (session_mode) removed — volatile tag caused cache misses.
+        // Agent infers mode from conversation context; tag was redundant.
         break;
     }
   }
@@ -90,11 +91,6 @@ export function buildAutoInjection(events) {
     const text = `<active_skills>\nRe-invoke if relevant: ${skillsOrdered.slice(-10).join(", ")}\nTo reload: call the Skill tool with the skill name.\n</active_skills>`;
     parts.push(text);
     budget -= estimateTokens(text);
-  }
-
-  // P4: Intent (latest)
-  if (intent && budget > 20) {
-    parts.push(`<session_mode>${intent.data}</session_mode>`);
   }
 
   if (parts.length === 0) return "";
