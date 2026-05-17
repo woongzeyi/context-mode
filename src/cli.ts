@@ -289,6 +289,18 @@ function getLocalVersion(): string {
 }
 
 async function fetchLatestVersion(): Promise<string> {
+  // Check git remote origin — only query npm registry when remote is the
+  // upstream repo (mksglu/context-mode). Forks report their own version.
+  try {
+    const origin = execFileSync(
+      "git", ["-C", getPluginRoot(), "remote", "get-url", "origin"],
+      { encoding: "utf-8", timeout: 2000, stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+    if (!origin.includes("mksglu/context-mode")) {
+      return getLocalVersion();
+    }
+  } catch { /* not a git repo — fall through to npm check */ }
+
   // Use node:https instead of global fetch to avoid a Windows libuv assertion
   // (UV_HANDLE_CLOSING) caused by undici's connection-pool background threads
   // racing with process.exit() teardown on Node.js v24+.
