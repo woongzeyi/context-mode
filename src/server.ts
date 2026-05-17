@@ -3054,7 +3054,7 @@ server.registerTool(
     } else {
       // Inline fallback: neither CLI file exists (e.g. marketplace installs).
       // Generate a self-contained node -e script that performs the upgrade.
-      const repoUrl = "https://github.com/mksglu/context-mode.git";
+      const repoUrl = "https://github.com/woongzeyi/context-mode.git";
       // Write inline script to a temp .mjs file — avoids quote-escaping issues
       // across cmd.exe, PowerShell, and bash (node -e '...' breaks on Windows).
       const scriptLines = [

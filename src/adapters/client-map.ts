@@ -24,6 +24,7 @@ export const CLIENT_NAME_TO_PLATFORM: Record<string, PlatformId> = {
   "Kiro CLI": "kiro",
   "Pi CLI": "pi",
   "Pi Coding Agent": "pi",
+  "pi-coding-agent-context-mode-bridge": "pi",
   "Zed": "zed",
   "zed": "zed",
   "qwen-code": "qwen-code",
