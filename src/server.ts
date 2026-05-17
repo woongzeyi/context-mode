@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createRequire } from "node:module";
 import { existsSync, unlinkSync, readdirSync, readFileSync, writeFileSync, renameSync, rmSync, mkdirSync, cpSync, statSync, symlinkSync, lstatSync } from "node:fs";
-import { execSync, spawnSync, type ChildProcess, type SpawnSyncOptions, type SpawnSyncReturns } from "node:child_process";
+import { execSync, execFileSync, spawnSync, type ChildProcess, type SpawnSyncOptions, type SpawnSyncReturns } from "node:child_process";
 import { join, dirname, resolve, sep, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir, tmpdir, cpus } from "node:os";
@@ -349,6 +349,19 @@ const VERSION_BURST_SIZE = 3;
 const VERSION_SILENT_MS = 60 * 60 * 1000; // 1 hour
 
 async function fetchLatestVersion(): Promise<string> {
+  // Check git remote origin. Only query npm registry when remote is the
+  // upstream repo (mksglu/context-mode). Forks report their own version
+  // as latest — no false "outdated" banner.
+  try {
+    const origin = execFileSync(
+      "git", ["-C", __pkg_dir, "remote", "get-url", "origin"],
+      { encoding: "utf-8", timeout: 2000, stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+    if (!origin.includes("mksglu/context-mode")) {
+      return VERSION;
+    }
+  } catch { /* not a git repo — fall through to npm check */ }
+
   return new Promise((res) => {
     const req = httpsRequest(
       "https://registry.npmjs.org/context-mode/latest",
