@@ -3045,12 +3045,25 @@ server.registerTool(
       }
     } catch { /* best effort — don't block upgrade */ }
 
+    // Detect platform from MCP clientInfo so the CLI knows which adapter to
+    // use for hook configuration (e.g. Pi adapter skips Claude-specific hooks).
+    // Without this, the CLI falls back to directory-based detection which
+    // picks Claude Code when ~/.claude/ exists even when running under Pi.
+    let platformFlag = "";
+    try {
+      const clientInfo = server.server.getClientVersion();
+      if (clientInfo) {
+        const signal = detectPlatform(clientInfo);
+        platformFlag = ` --platform ${signal.platform}`;
+      }
+    } catch { /* best effort */ }
+
     let cmd: string;
 
     if (existsSync(bundlePath)) {
-      cmd = `${buildNodeCommand(bundlePath)} upgrade`;
+      cmd = `${buildNodeCommand(bundlePath)} upgrade${platformFlag}`;
     } else if (existsSync(fallbackPath)) {
-      cmd = `${buildNodeCommand(fallbackPath)} upgrade`;
+      cmd = `${buildNodeCommand(fallbackPath)} upgrade${platformFlag}`;
     } else {
       // Inline fallback: neither CLI file exists (e.g. marketplace installs).
       // Generate a self-contained node -e script that performs the upgrade.
