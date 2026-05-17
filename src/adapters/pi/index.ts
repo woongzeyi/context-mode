@@ -161,24 +161,34 @@ export class PiAdapter extends BaseAdapter implements HookAdapter {
   }
 
   private findExtensionPkg(): string | null {
-    // Check traditional install path first: ~/.pi/extensions/context-mode/
-    const localPath = resolve(homedir(), ".pi", "extensions", "context-mode", "package.json");
-    try {
-      const pkg = JSON.parse(readFileSync(localPath, "utf-8"));
-      if (pkg?.name === "context-mode") return localPath;
-    } catch { /* not there */ }
+    const candidates: string[] = [];
 
-    // Fallback: check the git repo's .pi/extensions/context-mode/ (Pi loads
-    // the extension from git:github.com/woongzeyi/context-mode, which has
-    // its own .pi/extensions/ tree). Derive from this adapter's location:
-    //   build/adapters/pi/index.js → pluginRoot → .pi/extensions/context-mode/
+    // 1. Traditional install path: ~/.pi/extensions/context-mode/
+    candidates.push(resolve(homedir(), ".pi", "extensions", "context-mode", "package.json"));
+
+    // 2. Derived from adapter location (when imported as source/build artifact):
+    //    build/adapters/pi/index.js → up 3 → pluginRoot → .pi/extensions/...
+    // 3. Derived from bundle location (when bundled into cli.bundle.mjs):
+    //    cli.bundle.mjs → up 1 → pluginRoot → .pi/extensions/...
     try {
-      const adapterDir = dirname(fileURLToPath(import.meta.url));
-      const pluginRoot = resolve(adapterDir, "..", "..", "..");
-      const repoPath = resolve(pluginRoot, ".pi", "extensions", "context-mode", "package.json");
-      const pkg = JSON.parse(readFileSync(repoPath, "utf-8"));
-      if (pkg?.name === "context-mode") return repoPath;
-    } catch { /* not there either */ }
+      const adapterUrl = fileURLToPath(import.meta.url);
+      const adapterDir = dirname(adapterUrl);
+      // For source: /.../build/adapters/pi/index.js → up 3
+      candidates.push(
+        resolve(adapterDir, "..", "..", "..", ".pi", "extensions", "context-mode", "package.json"),
+      );
+      // For bundle: /.../cli.bundle.mjs → up 1
+      candidates.push(
+        resolve(adapterDir, "..", ".pi", "extensions", "context-mode", "package.json"),
+      );
+    } catch { /* cannot determine adapter path */ }
+
+    for (const pkgPath of candidates) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+        if (pkg?.name === "context-mode") return pkgPath;
+      } catch { /* not at this path */ }
+    }
 
     return null;
   }
