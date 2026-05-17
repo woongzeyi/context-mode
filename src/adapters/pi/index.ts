@@ -166,21 +166,18 @@ export class PiAdapter extends BaseAdapter implements HookAdapter {
     // 1. Traditional install path: ~/.pi/extensions/context-mode/
     candidates.push(resolve(homedir(), ".pi", "extensions", "context-mode", "package.json"));
 
-    // 2. Derived from adapter location (when imported as source/build artifact):
-    //    build/adapters/pi/index.js → up 3 → pluginRoot → .pi/extensions/...
-    // 3. Derived from bundle location (when bundled into cli.bundle.mjs):
-    //    cli.bundle.mjs → up 1 → pluginRoot → .pi/extensions/...
+    // 2. Derive from the adapter/bundle location. The adapter may be loaded
+    //    from source (build/adapters/pi/index.js → up 3 to plugin root), or
+    //    bundled into cli.bundle.mjs/server.bundle.mjs (at plugin root itself).
+    //    Try multiple ascent depths to handle both contexts.
     try {
       const adapterUrl = fileURLToPath(import.meta.url);
       const adapterDir = dirname(adapterUrl);
-      // For source: /.../build/adapters/pi/index.js → up 3
-      candidates.push(
-        resolve(adapterDir, "..", "..", "..", ".pi", "extensions", "context-mode", "package.json"),
-      );
-      // For bundle: /.../cli.bundle.mjs → up 1
-      candidates.push(
-        resolve(adapterDir, "..", ".pi", "extensions", "context-mode", "package.json"),
-      );
+      // Try ascent depths 0..5 so any nesting level works
+      for (let up = 0; up <= 5; up++) {
+        const dir = up === 0 ? adapterDir : resolve(adapterDir, ...Array(up).fill(".."));
+        candidates.push(resolve(dir, ".pi", "extensions", "context-mode", "package.json"));
+      }
     } catch { /* cannot determine adapter path */ }
 
     for (const pkgPath of candidates) {
