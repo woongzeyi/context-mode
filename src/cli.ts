@@ -137,6 +137,10 @@ async function hookDispatch(platform: string, event: string): Promise<void> {
 const args = process.argv.slice(2);
 
 if (args[0] === "doctor") {
+  const platIdx = args.indexOf("--platform");
+  if (platIdx !== -1 && args[platIdx + 1]) {
+    process.env.CONTEXT_MODE_PLATFORM = args[platIdx + 1];
+  }
   doctor().then((code) => process.exit(code));
 } else if (args[0] === "upgrade") {
   // Parse --platform <id> from args and set as env var so detectPlatform()
@@ -1201,7 +1205,10 @@ async function upgrade() {
     const cliBundlePath = resolve(pluginRoot, "cli.bundle.mjs");
     const cliBuildPath = resolve(pluginRoot, "build", "cli.js");
     const cliPath = existsSync(cliBundlePath) ? cliBundlePath : cliBuildPath;
-    execFileSync("node", [cliPath, "doctor"], {
+    const doctorArgs = adapter
+      ? [cliPath, "doctor", "--platform", adapter.name.toLowerCase().replace(/ /g, "-")]
+      : [cliPath, "doctor"];
+    execFileSync("node", doctorArgs, {
       stdio: "inherit",
       timeout: 30000,
       cwd: pluginRoot,
