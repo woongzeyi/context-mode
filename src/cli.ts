@@ -139,6 +139,12 @@ const args = process.argv.slice(2);
 if (args[0] === "doctor") {
   doctor().then((code) => process.exit(code));
 } else if (args[0] === "upgrade") {
+  // Parse --platform <id> from args and set as env var so detectPlatform()
+  // picks it up at high confidence regardless of directory fallback order.
+  const platIdx = args.indexOf("--platform");
+  if (platIdx !== -1 && args[platIdx + 1]) {
+    process.env.CONTEXT_MODE_PLATFORM = args[platIdx + 1];
+  }
   upgrade().catch((err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
     p.log.error(color.red(message));
